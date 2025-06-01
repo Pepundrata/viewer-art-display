@@ -1,29 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Viewer Art Display</title>
+
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage.js"></script>
 
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Viewer Art Display</title>
   <style>
     body {
       background: #111;
       color: #eee;
       font-family: Arial, sans-serif;
-      margin: 0; padding: 1rem;
+      margin: 0;
+      padding: 1rem;
+      transition: all 0.3s ease;
     }
+
     h1 {
       text-align: center;
     }
+
+    #controls {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    #streamerToggle, #maxCount {
+      margin: 0.5rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: none;
+    }
+
+    #streamerToggle {
+      background: #0ff;
+      color: #000;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
     #art-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 12px;
       margin-top: 1rem;
     }
+
     #art-grid img {
       width: 100%;
       height: auto;
@@ -32,61 +59,79 @@
       box-shadow: 0 0 6px #0ff;
       transition: transform 0.3s;
     }
+
     #art-grid img:hover {
       transform: scale(1.05);
+    }
+
+    body.streamer-mode {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    body.streamer-mode h1,
+    body.streamer-mode #controls {
+      display: none;
+    }
+
+    body.streamer-mode #art-grid {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      height: 100vh;
+    }
+
+    body.streamer-mode #art-grid img {
+      height: 90vh;
+      width: auto;
+      max-width: none;
+      box-shadow: none;
+      border-radius: 0;
     }
   </style>
 </head>
 <body>
   <h1>Viewer Art Display</h1>
+  <div id="controls">
+    <label for="maxCount">How many artworks to show:</label>
+    <select id="maxCount">
+      <option value="1">1</option>
+      <option value="2" selected>2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+    </select>
+    <button id="streamerToggle">🎥 Streamer Mode</button>
+  </div>
+
   <div id="art-grid">Loading...</div>
 
   <script>
-    // Your Firebase config here (replace with your actual config)
-    const firebaseConfig = {
-      apiKey: "AIzaSyDAyO1T8DBNx4dvVZ7vD0rJM1TXcbn4yPE",
-      authDomain: "viewer-art-display.firebaseapp.com",
-      projectId: "viewer-art-display",
-      storageBucket: "viewer-art-display.firebasestorage.app",
-      messagingSenderId: "612502835850",
-      appId: "1:612502835850:web:4daf4f4440e78fe933d373"
-    };
-
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-
     const artGrid = document.getElementById('art-grid');
-    const refreshInterval = 10000;
-    const maxArtworks = 5;
+    const maxCountSelect = document.getElementById('maxCount');
+    const streamerBtn = document.getElementById('streamerToggle');
 
-    const db = firebase.firestore();
-    const storage = firebase.storage();
+    let maxArtworks = parseInt(maxCountSelect.value);
+    const refreshInterval = 10000; // 10 seconds
+
+    maxCountSelect.addEventListener('change', () => {
+      maxArtworks = parseInt(maxCountSelect.value);
+      fetchArt();
+    });
+
+    streamerBtn.addEventListener('click', () => {
+      document.body.classList.toggle('streamer-mode');
+    });
 
     async function fetchArt() {
       try {
-        const snapshot = await db.collection('artworks')
-          .orderBy('timestamp', 'desc')
-          .limit(maxArtworks)
-          .get();
-
-        if (snapshot.empty) {
-          artGrid.innerHTML = 'No artworks yet.';
-          return;
-        }
-
-        const artworks = [];
-
-        for (const doc of snapshot.docs) {
-          const data = doc.data();
-          const url = await storage.ref(data.storagePath).getDownloadURL();
-          artworks.push({
-            url,
-            title: data.title || 'Viewer Art',
-            timestamp: data.timestamp.toDate()
-          });
-        }
-
-        displayArt(artworks);
+        const response = await fetch('artworks.json');
+        const data = await response.json();
+        displayArt(data);
       } catch (e) {
         artGrid.innerHTML = 'Failed to load artworks.';
         console.error(e);
@@ -94,11 +139,19 @@
     }
 
     function displayArt(artworks) {
+      if (!Array.isArray(artworks) || artworks.length === 0) {
+        artGrid.innerHTML = 'No artworks yet.';
+        return;
+      }
+
+      artworks.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      const limited = artworks.slice(0, maxArtworks);
+
       artGrid.innerHTML = '';
-      artworks.forEach(art => {
+      limited.forEach(art => {
         const img = document.createElement('img');
         img.src = art.url;
-        img.alt = art.title;
+        img.alt = art.title || 'Viewer Art';
         artGrid.appendChild(img);
       });
     }
