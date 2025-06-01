@@ -1,226 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Viewer Art Display</title>
-
-  <!-- Firebase Compat SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
-
+  <meta charset="UTF-8">
+  <title>Upload Viewer Art</title>
   <style>
     body {
       background: #111;
       color: #eee;
-      font-family: Arial, sans-serif;
-      margin: 0; padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    h1 {
+      font-family: sans-serif;
       text-align: center;
-      margin-bottom: 0.5rem;
+      padding: 2rem;
     }
-    #controls {
-      margin-bottom: 1rem;
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: center;
+    input[type="file"] {
+      margin: 1rem 0;
     }
-    #art-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 12px;
-      width: 100%;
-      max-width: 900px;
-    }
-    #art-grid.streamer {
-      display: flex;
-      overflow-x: auto;
-      gap: 10px;
-    }
-    #art-grid img {
-      width: 100%;
-      height: auto;
+    img {
+      margin-top: 1rem;
+      max-width: 100%;
+      border: 2px solid #0ff;
       border-radius: 8px;
-      object-fit: cover;
-      box-shadow: 0 0 6px #0ff;
-      transition: transform 0.3s;
-      flex-shrink: 0;
-      max-width: 150px;
-    }
-    #art-grid img:hover {
-      transform: scale(1.05);
-    }
-    #upload-form {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
-      flex-wrap: wrap;
-      justify-content: center;
-      width: 100%;
-      max-width: 900px;
-      margin-bottom: 1rem;
-    }
-    #upload-form input[type="file"] {
-      color: #eee;
-    }
-    #upload-form button {
-      background-color: #0ff;
-      border: none;
-      padding: 0.5rem 1rem;
-      font-weight: bold;
-      border-radius: 6px;
-      cursor: pointer;
-      color: #111;
-      transition: background-color 0.3s;
-    }
-    #upload-form button:hover {
-      background-color: #0cc;
-    }
-    label {
-      font-size: 0.9rem;
-      user-select: none;
-    }
-    #max-artworks {
-      width: 60px;
-      padding: 0.3rem;
-      border-radius: 6px;
-      border: none;
-      text-align: center;
-      font-size: 1rem;
+      box-shadow: 0 0 10px #0ff;
     }
   </style>
 </head>
 <body>
-  <h1>Viewer Art Display</h1>
-
-  <div id="controls">
-    <label>
-      Max images:
-      <input type="number" id="max-artworks" min="1" max="20" value="5" />
-    </label>
-
-    <label>
-      <input type="checkbox" id="streamer-mode" />
-      Streamer Mode (OBS overlay)
-    </label>
-  </div>
-
-  <form id="upload-form">
-    <input type="file" id="artfile" accept="image/*" required />
-    <button type="submit">Upload Artwork</button>
-  </form>
-
-  <div id="art-grid">Loading...</div>
+  <h1>Upload Your Art</h1>
+  <input type="file" id="fileInput" accept="image/*"><br>
+  <button onclick="uploadImage()">Upload</button>
+  <div id="result"></div>
 
   <script>
-    // Your Firebase config here (replace with your own)
-    const firebaseConfig = {
-  apiKey: "AIzaSyDAyO1T8DBNx4dvVZ7vD0rJM1TXcbn4yPE",
-  authDomain: "viewer-art-display.firebaseapp.com",
-  projectId: "viewer-art-display",
-  storageBucket: "viewer-art-display.firebasestorage.app",
-  messagingSenderId: "612502835850",
-  appId: "1:612502835850:web:4daf4f4440e78fe933d373",
-  measurementId: "G-D9FJC0PFEC"
-};
+    // 🔧 Replace this with your actual Imgur Client ID
+    const IMGUR_CLIENT_ID = "a5f0331697c377a";
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const storage = firebase.storage();
+    async function uploadImage() {
+      const fileInput = document.getElementById('fileInput');
+      const result = document.getElementById('result');
 
-    const artGrid = document.getElementById('art-grid');
-    const maxArtworksInput = document.getElementById('max-artworks');
-    const streamerModeCheckbox = document.getElementById('streamer-mode');
-    const uploadForm = document.getElementById('upload-form');
-    const artFileInput = document.getElementById('artfile');
-
-    let maxArtworks = parseInt(maxArtworksInput.value, 10);
-    let streamerMode = streamerModeCheckbox.checked;
-
-    maxArtworksInput.addEventListener('change', () => {
-      maxArtworks = parseInt(maxArtworksInput.value, 10);
-      fetchAndDisplayArt();
-    });
-
-    streamerModeCheckbox.addEventListener('change', () => {
-      streamerMode = streamerModeCheckbox.checked;
-      updateDisplayMode();
-    });
-
-    function updateDisplayMode() {
-      if (streamerMode) {
-        artGrid.classList.add('streamer');
-      } else {
-        artGrid.classList.remove('streamer');
+      if (!fileInput.files.length) {
+        alert('Please choose an image.');
+        return;
       }
-    }
 
-    async function fetchAndDisplayArt() {
+      const formData = new FormData();
+      formData.append("image", fileInput.files[0]);
+
       try {
-        // Get artworks from Firestore collection 'artworks'
-        const snapshot = await db.collection('artworks').orderBy('timestamp', 'desc').limit(maxArtworks).get();
-        if (snapshot.empty) {
-          artGrid.innerHTML = 'No artworks yet.';
-          return;
+        result.innerHTML = "Uploading...";
+        const res = await fetch("https://api.imgur.com/3/image", {
+          method: "POST",
+          headers: {
+            Authorization: "Client-ID " + IMGUR_CLIENT_ID
+          },
+          body: formData
+        });
+
+        const json = await res.json();
+
+        if (json.success) {
+          result.innerHTML = `<p>Uploaded successfully!</p><img src="${json.data.link}" alt="Uploaded Art">`;
+        } else {
+          throw new Error("Upload failed");
         }
-
-        artGrid.innerHTML = '';
-        snapshot.forEach(doc => {
-          const art = doc.data();
-          const img = document.createElement('img');
-          img.src = art.url;
-          img.alt = art.title || 'Viewer Art';
-          artGrid.appendChild(img);
-        });
       } catch (e) {
-        artGrid.innerHTML = 'Failed to load artworks.';
         console.error(e);
+        result.innerHTML = "Upload failed.";
       }
     }
-
-    // Initial load
-    fetchAndDisplayArt();
-    updateDisplayMode();
-
-    // Refresh periodically
-    setInterval(fetchAndDisplayArt, 10000);
-
-    // Upload logic
-    uploadForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const file = artFileInput.files[0];
-      if (!file) return alert("Please select an image to upload.");
-
-      const storageRef = storage.ref();
-      const fileRef = storageRef.child('artworks/' + Date.now() + '_' + file.name);
-
-      try {
-        await fileRef.put(file);
-        const url = await fileRef.getDownloadURL();
-
-        // Add metadata to Firestore
-        await db.collection('artworks').add({
-          url,
-          title: file.name,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        alert("Upload successful!");
-        artFileInput.value = '';
-        fetchAndDisplayArt();
-      } catch (error) {
-        console.error("Upload failed:", error);
-        alert("Upload failed. See console for details.");
-      }
-    });
   </script>
 </body>
 </html>
