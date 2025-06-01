@@ -42,15 +42,51 @@
   <div id="art-grid">Loading...</div>
 
   <script>
+    // Your Firebase config here (replace with your actual config)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDAyO1T8DBNx4dvVZ7vD0rJM1TXcbn4yPE",
+      authDomain: "viewer-art-display.firebaseapp.com",
+      projectId: "viewer-art-display",
+      storageBucket: "viewer-art-display.firebasestorage.app",
+      messagingSenderId: "612502835850",
+      appId: "1:612502835850:web:4daf4f4440e78fe933d373"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
     const artGrid = document.getElementById('art-grid');
     const refreshInterval = 10000;
     const maxArtworks = 5;
 
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
     async function fetchArt() {
       try {
-        const response = await fetch('artworks.json');
-        const data = await response.json();
-        displayArt(data);
+        const snapshot = await db.collection('artworks')
+          .orderBy('timestamp', 'desc')
+          .limit(maxArtworks)
+          .get();
+
+        if (snapshot.empty) {
+          artGrid.innerHTML = 'No artworks yet.';
+          return;
+        }
+
+        const artworks = [];
+
+        for (const doc of snapshot.docs) {
+          const data = doc.data();
+          const url = await storage.ref(data.storagePath).getDownloadURL();
+          artworks.push({
+            url,
+            title: data.title || 'Viewer Art',
+            timestamp: data.timestamp.toDate()
+          });
+        }
+
+        displayArt(artworks);
       } catch (e) {
         artGrid.innerHTML = 'Failed to load artworks.';
         console.error(e);
@@ -58,20 +94,11 @@
     }
 
     function displayArt(artworks) {
-      if (!Array.isArray(artworks) || artworks.length === 0) {
-        artGrid.innerHTML = 'No artworks yet.';
-        return;
-      }
-
-      artworks.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-      const limited = artworks.slice(0, maxArtworks);
-
       artGrid.innerHTML = '';
-      limited.forEach(art => {
+      artworks.forEach(art => {
         const img = document.createElement('img');
         img.src = art.url;
-        img.alt = art.title || 'Viewer Art';
+        img.alt = art.title;
         artGrid.appendChild(img);
       });
     }
