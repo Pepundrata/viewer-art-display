@@ -1,72 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Upload Viewer Art</title>
-  <style>
-    body {
-      background: #111;
-      color: #eee;
-      font-family: sans-serif;
-      text-align: center;
-      padding: 2rem;
-    }
-    input[type="file"] {
-      margin: 1rem 0;
-    }
-    img {
-      margin-top: 1rem;
-      max-width: 100%;
-      border: 2px solid #0ff;
-      border-radius: 8px;
-      box-shadow: 0 0 10px #0ff;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <title>Viewer Art Overlay</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Upload Your Art</h1>
-  <input type="file" id="fileInput" accept="image/*"><br>
-  <button onclick="uploadImage()">Upload</button>
-  <div id="result"></div>
+  <div id="overlay">
+    <div id="controls">
+      <label>
+        Number of images:
+        <input type="number" id="numImages" min="1" max="20" value="5" />
+      </label>
+      <label>
+        <input type="checkbox" id="randomToggle" />
+        Show random images
+      </label>
+      <label>
+        Mode:
+        <select id="modeSelect">
+          <option value="static">Static</option>
+          <option value="loop">Looping</option>
+        </select>
+      </label>
+      <button id="refreshBtn">Refresh</button>
+    </div>
+    <div id="imageContainer"></div>
+  </div>
 
-  <script>
-    // 🔧 Replace this with your actual Imgur Client ID
-    const IMGUR_CLIENT_ID = "a5f0331697c377a";
-
-    async function uploadImage() {
-      const fileInput = document.getElementById('fileInput');
-      const result = document.getElementById('result');
-
-      if (!fileInput.files.length) {
-        alert('Please choose an image.');
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("image", fileInput.files[0]);
-
-      try {
-        result.innerHTML = "Uploading...";
-        const res = await fetch("https://api.imgur.com/3/image", {
-          method: "POST",
-          headers: {
-            Authorization: "Client-ID " + IMGUR_CLIENT_ID
-          },
-          body: formData
-        });
-
-        const json = await res.json();
-
-        if (json.success) {
-          result.innerHTML = `<p>Uploaded successfully!</p><img src="${json.data.link}" alt="Uploaded Art">`;
-        } else {
-          throw new Error("Upload failed");
-        }
-      } catch (e) {
-        console.error(e);
-        result.innerHTML = "Upload failed.";
-      }
-    }
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
