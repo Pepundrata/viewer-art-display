@@ -1,44 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Firebase App (the core Firebase SDK) -->
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage.js"></script>
 
-<!-- Add Firebase products you want to use -->
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage.js"></script>
-
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Viewer Art Display</title>
-<style>
-  body {
-    background: #111;
-    color: #eee;
-    font-family: Arial, sans-serif;
-    margin: 0; padding: 1rem;
-  }
-  h1 {
-    text-align: center;
-  }
-  #art-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 12px;
-    margin-top: 1rem;
-  }
-  #art-grid img {
-    width: 100%;
-    height: auto;
-    border-radius: 8px;
-    object-fit: cover;
-    box-shadow: 0 0 6px #0ff;
-    transition: transform 0.3s;
-  }
-  #art-grid img:hover {
-    transform: scale(1.05);
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Viewer Art Display</title>
+  <style>
+    body {
+      background: #111;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 1rem;
+    }
+    h1 {
+      text-align: center;
+    }
+    #art-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-top: 1rem;
+    }
+    #art-grid img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      object-fit: cover;
+      box-shadow: 0 0 6px #0ff;
+      transition: transform 0.3s;
+    }
+    #art-grid img:hover {
+      transform: scale(1.05);
+    }
+  </style>
 </head>
 <body>
   <h1>Viewer Art Display</h1>
@@ -46,12 +43,12 @@
 
   <script>
     const artGrid = document.getElementById('art-grid');
-    const refreshInterval = 10000; // 10 seconds
-    const maxArtworks = 5; // Number of artworks to display
+    const refreshInterval = 10000;
+    const maxArtworks = 5;
 
     async function fetchArt() {
       try {
-        const response = await fetch('artworks.json'); // We'll create this file next
+        const response = await fetch('artworks.json');
         const data = await response.json();
         displayArt(data);
       } catch (e) {
@@ -66,7 +63,6 @@
         return;
       }
 
-      // Sort artworks by timestamp descending (latest first)
       artworks.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       const limited = artworks.slice(0, maxArtworks);
@@ -80,9 +76,7 @@
       });
     }
 
-    // Initial fetch
     fetchArt();
-    // Refresh periodically
     setInterval(fetchArt, refreshInterval);
   </script>
 </body>
